@@ -33,15 +33,24 @@ const AdminLogin = () => {
             const data = await response.json();
 
             if (response.ok) {
-                // Ideally, you should verify if the user has 'admin' role here or via a separate API call
-                // For now, we assume if they can login, we let them in, and the API middleware will block non-admins
+                // SECURITY CHECK: Verify Role
+                if (data.user.role !== 'admin') {
+                    setError("Access Denied: You do not have administrator privileges.");
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Store Token & Role
                 localStorage.setItem('token', data.token);
+                localStorage.setItem('role', data.user.role);
+
                 setSuccess('Welcome back, Admin.');
                 setTimeout(() => navigate('/dashboard'), 1000);
             } else {
                 setError(data.message || 'Login failed');
             }
         } catch (err) {
+            console.error(err);
             setError('Server connection error');
         } finally {
             setIsLoading(false);
@@ -63,13 +72,24 @@ const AdminLogin = () => {
                 const data = await res.json();
 
                 if (res.ok) {
+                    // SECURITY CHECK: Verify Role
+                    if (data.user.role !== 'admin') {
+                        setError("Access Denied: This Google account is not an admin.");
+                        setIsLoading(false);
+                        return;
+                    }
+
+                    // Store Token & Role
                     localStorage.setItem('token', data.token);
-                    setSuccess('Google Auth Successful');
+                    localStorage.setItem('role', data.user.role);
+
+                    setSuccess('Google Admin Access Granted');
                     setTimeout(() => navigate('/dashboard'), 1000);
                 } else {
                     setError(data.message || 'Google Auth Failed');
                 }
             } catch (err) {
+                console.error(err);
                 setError('Connection failed during Google Auth');
             } finally {
                 setIsLoading(false);
@@ -97,7 +117,7 @@ const AdminLogin = () => {
 
                 {/* Error / Success Messages */}
                 {error && (
-                    <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-3">
+                    <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-3 animate-pulse">
                         <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={18} />
                         <p className="text-sm text-red-200">{error}</p>
                     </div>
@@ -110,6 +130,7 @@ const AdminLogin = () => {
                     </div>
                 )}
 
+                {/* Manual Login Form */}
                 <form onSubmit={handleLogin} className="space-y-5">
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Email Address</label>
@@ -149,6 +170,7 @@ const AdminLogin = () => {
                     <span className="relative bg-[#080D0F] px-4 text-xs text-gray-500 font-bold uppercase">Or continue with</span>
                 </div>
 
+                {/* Google Login Button */}
                 <button
                     onClick={() => handleGoogleLogin()}
                     disabled={isLoading}
@@ -162,6 +184,7 @@ const AdminLogin = () => {
     );
 };
 
+// SVG Icon for Google
 const GoogleIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
