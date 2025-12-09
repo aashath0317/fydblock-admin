@@ -78,7 +78,7 @@ const AdminBotManagement = () => {
         fetchBots();
     }, []);
 
-    // --- AUTO-FILL PARAMETERS ON TYPE CHANGE ---
+    // --- AUTO-FILL PARAMETERS ---
     useEffect(() => {
         if (isModalOpen && !editingBotId) {
             const defaults = PARAMETER_TEMPLATES[formData.bot_type] || [];
@@ -91,7 +91,6 @@ const AdminBotManagement = () => {
 
     // 3. HANDLERS
     
-    // --- OPEN MODAL FOR EDITING ---
     const handleConfigureClick = (bot) => {
         let existingParams = [];
         try {
@@ -111,7 +110,7 @@ const AdminBotManagement = () => {
             bot_type: bot.bot_type || bot.type || 'DCA',
             status: bot.status === 'active' || bot.status === 'running',
             icon: null,
-            iconPreview: bot.icon_url || '', // Load existing SVG string
+            iconPreview: bot.icon_url || '', 
             parameters: existingParams.length > 0 ? existingParams : (PARAMETER_TEMPLATES[bot.bot_type] || [])
         });
 
@@ -119,7 +118,6 @@ const AdminBotManagement = () => {
         setIsModalOpen(true);
     };
 
-    // --- OPEN MODAL FOR CREATING ---
     const handleOpenCreateModal = () => {
         setEditingBotId(null);
         setFormData({ 
@@ -134,27 +132,23 @@ const AdminBotManagement = () => {
         setIsModalOpen(true);
     };
 
-    // --- FILE UPLOAD HELPER (SVG ONLY) ---
+    // --- FILE UPLOAD HELPER (SVG ONLY + BASE64) ---
     const convertToBase64 = (file) => {
         return new Promise((resolve, reject) => {
             const fileReader = new FileReader();
             fileReader.readAsDataURL(file);
-            fileReader.onload = () => {
-                resolve(fileReader.result);
-            };
-            fileReader.onerror = (error) => {
-                reject(error);
-            };
+            fileReader.onload = () => resolve(fileReader.result);
+            fileReader.onerror = (error) => reject(error);
         });
     };
 
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (file) {
-            // Strictly check for SVG
+            // Check for SVG MIME type
             if (file.type !== 'image/svg+xml') {
                 alert("Please upload an SVG file only.");
-                e.target.value = null; // Reset input
+                e.target.value = null;
                 return;
             }
             const base64 = await convertToBase64(file);
@@ -162,7 +156,7 @@ const AdminBotManagement = () => {
         }
     };
 
-    // --- PARAMETER HANDLERS ---
+    // --- PARAMETER LOGIC ---
     const addParameter = () => {
         setFormData(prev => ({
             ...prev,
@@ -214,12 +208,13 @@ const AdminBotManagement = () => {
             status: formData.status ? 'active' : 'stopped',
             description: formData.description,
             config: configJson,
-            icon: formData.iconPreview // Sends the SVG Base64 string
+            icon: formData.iconPreview 
         };
 
         try {
             let response;
             if (editingBotId) {
+                // UPDATE
                 response = await fetch(`${API_BASE_URL}/user/bot/${editingBotId}`, {
                     method: 'PUT',
                     headers: {
@@ -229,6 +224,7 @@ const AdminBotManagement = () => {
                     body: JSON.stringify(payload)
                 });
             } else {
+                // CREATE
                 response = await fetch(`${API_BASE_URL}/user/bot`, {
                     method: 'POST',
                     headers: {
@@ -253,7 +249,6 @@ const AdminBotManagement = () => {
         }
     };
 
-    // Stats
     const totalBots = bots.length;
     const activeBots = bots.filter(b => b.status === 'active' || b.status === 'ready').length;
     const stoppedBots = bots.filter(b => b.status === 'stopped' || b.status === 'paused').length;
@@ -263,7 +258,6 @@ const AdminBotManagement = () => {
             <AdminNav />
 
             <main className="flex-1 ml-64 p-8">
-                {/* HEADER */}
                 <div className="flex items-center justify-between mb-8">
                     <h1 className="text-3xl font-bold text-[#00FF9D]">Bot Management</h1>
                     <button 
@@ -275,14 +269,12 @@ const AdminBotManagement = () => {
                     </button>
                 </div>
 
-                {/* STATS */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                     <StatCard label="Total Bots" count={totalBots} icon={<User size={24} />} />
                     <StatCard label="Active Bots" count={activeBots} icon={<User size={24} />} />
                     <StatCard label="Stopped / Paused" count={stoppedBots} icon={<User size={24} />} />
                 </div>
 
-                {/* CONTENT GRID */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     {isLoading ? (
                         <div className="col-span-2 flex justify-center py-20 text-[#00FF9D]">
@@ -322,9 +314,7 @@ const AdminBotManagement = () => {
             {/* --- CREATE/EDIT BOT MODAL --- */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[#020506] border border-white/10 w-full max-w-5xl rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-                        
-                        {/* Modal Header */}
+                    <div className="bg-[#020506] border border-white/10 w-full max-w-5xl rounded-3xl p-8 shadow-2xl relative overflow-hidden max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-8">
                             <h2 className="text-2xl font-bold text-white">
                                 {editingBotId ? 'Configure Bot' : 'Create New System Bot'}
@@ -399,16 +389,15 @@ const AdminBotManagement = () => {
                                             type="file" 
                                             className="absolute inset-0 opacity-0 cursor-pointer z-20" 
                                             onChange={handleFileChange} 
-                                            accept="image/svg+xml" // STRICT SVG ONLY
+                                            accept="image/svg+xml" 
                                         />
                                         
                                         {formData.iconPreview ? (
                                             <div className="relative z-10 w-full h-full p-4 flex items-center justify-center">
-                                                {/* Display SVG Preview */}
                                                 <img 
                                                     src={formData.iconPreview} 
                                                     alt="Preview" 
-                                                    className="w-16 h-16 object-contain" 
+                                                    className="max-h-full max-w-full object-contain" 
                                                 />
                                             </div>
                                         ) : (
@@ -422,7 +411,7 @@ const AdminBotManagement = () => {
                                 </div>
                             </div>
 
-                            {/* --- RIGHT COLUMN (FORM BUILDER) --- */}
+                            {/* --- RIGHT COLUMN --- */}
                             <div className="flex flex-col h-full">
                                 <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-4">
                                     <h3 className="text-lg font-bold text-white">Configuration Parameters</h3>
@@ -430,13 +419,6 @@ const AdminBotManagement = () => {
                                 </div>
                                 
                                 <div className="flex-1 bg-[#131B1F] border border-white/10 rounded-xl p-4 flex flex-col gap-3 overflow-y-auto max-h-[400px]">
-                                    
-                                    {formData.parameters.length === 0 && (
-                                        <div className="text-center text-gray-600 text-sm py-10 italic">
-                                            No parameters. Select a category or click "Add" to start.
-                                        </div>
-                                    )}
-
                                     {formData.parameters.map((param, index) => (
                                         <div key={index} className="flex gap-2 items-center bg-[#080D0F] border border-white/10 p-2 rounded-lg group hover:border-[#00FF9D]/30 transition-colors">
                                             <input 
@@ -466,7 +448,6 @@ const AdminBotManagement = () => {
                                             </button>
                                         </div>
                                     ))}
-
                                     <button 
                                         type="button"
                                         onClick={addParameter}
@@ -502,7 +483,6 @@ const AdminBotManagement = () => {
     );
 };
 
-// --- SUB-COMPONENTS ---
 const StatCard = ({ label, count, icon }) => (
     <div className="bg-[#080D0F] border border-white/10 rounded-2xl p-6 flex items-center gap-4 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-20 h-20 bg-[#00FF9D]/5 rounded-full blur-2xl translate-x-1/2 -translate-y-1/2"></div>
@@ -521,14 +501,19 @@ const BotCard = ({ bot, onDelete, onConfigure }) => {
     
     return (
         <div className="bg-[#080D0F] border border-white/10 rounded-2xl p-6 relative group">
-            {/* Header */}
             <div className="flex justify-between items-start mb-4 pb-4 border-b border-white/5">
-                <div className="flex items-center gap-4">
-                    {/* SVG ICON DISPLAY */}
-                    {bot.icon_url && (
+                <div className="flex items-center gap-3">
+                    {bot.icon_url ? (
                         <div className="w-10 h-10 rounded-lg bg-white/5 p-2 flex items-center justify-center border border-white/10">
-                            <img src={bot.icon_url} alt="icon" className="w-full h-full object-contain" />
+                            {/* ✅ ADDED CLASS group-hover:brightness-0 TO MAKE SVG BLACK ON HOVER */}
+                            <img 
+                                src={bot.icon_url} 
+                                alt="Icon" 
+                                className="w-full h-full object-contain group-hover:brightness-0 transition-all duration-300" 
+                            />
                         </div>
+                    ) : (
+                        <div className="w-10 h-10 bg-white/5 rounded-lg"></div>
                     )}
                     <h3 className="text-xl font-medium text-white">{bot.bot_name || bot.name}</h3>
                 </div>
@@ -539,14 +524,12 @@ const BotCard = ({ bot, onDelete, onConfigure }) => {
                 </span>
             </div>
 
-            {/* Content */}
             <div className="flex items-end justify-between">
                 <div>
                     <p className="text-gray-500 text-sm mb-1">Type</p>
                     <p className="text-xl font-medium text-white capitalize">{bot.bot_type || bot.type || 'Standard'}</p>
                 </div>
                 
-                {/* Actions */}
                 <div className="flex gap-3">
                     <button 
                         onClick={() => onConfigure(bot)}
