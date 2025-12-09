@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-    Plus, User, X, Loader2, UploadCloud, FileJson 
+    Plus, User, X, Loader2, UploadCloud, Trash2, Settings 
 } from 'lucide-react';
 import AdminNav from './AdminNav'; 
 import API_BASE_URL from './config';
@@ -18,8 +18,9 @@ const AdminBotManagement = () => {
         description: '',
         bot_type: 'DCA',
         status: true,
-        config_params: '',
-        icon: null
+        icon: null,
+        // Instead of a string, we use an array for the builder
+        parameters: [] 
     });
 
     // 2. FETCH DATA
@@ -49,11 +50,36 @@ const AdminBotManagement = () => {
         fetchBots();
     }, []);
 
-    // 3. CREATE BOT HANDLER
+    // 3. HANDLERS
+    
+    // Add a new empty parameter row
+    const addParameter = () => {
+        setFormData(prev => ({
+            ...prev,
+            parameters: [...prev.parameters, { name: '', type: 'Number' }]
+        }));
+    };
+
+    // Update a specific parameter field
+    const updateParameter = (index, field, value) => {
+        const newParams = [...formData.parameters];
+        newParams[index][field] = value;
+        setFormData({ ...formData, parameters: newParams });
+    };
+
+    // Remove a parameter
+    const removeParameter = (index) => {
+        const newParams = formData.parameters.filter((_, i) => i !== index);
+        setFormData({ ...formData, parameters: newParams });
+    };
+
     const handleCreateBot = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
         const token = localStorage.getItem('token');
+
+        // Convert the builder array to a JSON string for the backend
+        const configJson = JSON.stringify(formData.parameters);
 
         const payload = {
             bot_name: formData.bot_name,
@@ -61,7 +87,7 @@ const AdminBotManagement = () => {
             quote_currency: 'USDT',
             status: formData.status ? 'active' : 'stopped',
             description: formData.description,
-            config: formData.config_params
+            config: configJson // Send as stringified JSON
         };
 
         try {
@@ -79,7 +105,7 @@ const AdminBotManagement = () => {
                 setIsModalOpen(false); 
                 setFormData({ 
                     bot_name: '', description: '', bot_type: 'DCA', 
-                    status: true, config_params: '', icon: null 
+                    status: true, icon: null, parameters: [] 
                 }); 
             } else {
                 alert("Failed to create bot. Please check your inputs.");
@@ -91,7 +117,6 @@ const AdminBotManagement = () => {
         }
     };
 
-    // Helper: File Drop
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
             setFormData({ ...formData, icon: e.target.files[0] });
@@ -178,12 +203,10 @@ const AdminBotManagement = () => {
                             <div className="space-y-6">
                                 <h3 className="text-lg font-bold text-white border-b border-white/10 pb-2">General Information</h3>
 
-                                {/* Bot Name */}
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-2">Bot Name</label>
                                     <input 
-                                        type="text" 
-                                        required
+                                        type="text" required
                                         value={formData.bot_name}
                                         onChange={(e) => setFormData({...formData, bot_name: e.target.value})}
                                         className="w-full bg-[#131B1F] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00FF9D] outline-none"
@@ -191,7 +214,6 @@ const AdminBotManagement = () => {
                                     />
                                 </div>
 
-                                {/* Description */}
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-2">Description</label>
                                     <textarea 
@@ -203,9 +225,7 @@ const AdminBotManagement = () => {
                                     />
                                 </div>
 
-                                {/* ROW 3: Category & Status (Side by Side) */}
                                 <div className="grid grid-cols-[2fr_1fr] gap-4">
-                                    {/* Category Dropdown */}
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 mb-2">Category</label>
                                         <select 
@@ -219,11 +239,9 @@ const AdminBotManagement = () => {
                                             <option value="Arbitrage">Arbitrage</option>
                                         </select>
                                     </div>
-
-                                    {/* Status Toggle */}
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 mb-2">Status (Active)</label>
-                                        <div className="flex items-center h-[46px]"> {/* Height matches input */}
+                                        <div className="flex items-center h-[46px]">
                                             <div 
                                                 onClick={() => setFormData({...formData, status: !formData.status})}
                                                 className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-colors duration-300 ${formData.status ? 'bg-[#00FF9D]' : 'bg-gray-700'}`}
@@ -234,15 +252,10 @@ const AdminBotManagement = () => {
                                     </div>
                                 </div>
 
-                                {/* File Upload */}
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-2">Set Bot Icon</label>
                                     <div className="border-2 border-dashed border-white/10 rounded-xl bg-[#131B1F] h-32 flex flex-col items-center justify-center text-gray-500 hover:border-[#00FF9D]/50 hover:bg-[#131B1F]/50 transition-all cursor-pointer relative">
-                                        <input 
-                                            type="file" 
-                                            className="absolute inset-0 opacity-0 cursor-pointer" 
-                                            onChange={handleFileChange}
-                                        />
+                                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} />
                                         {formData.icon ? (
                                             <span className="text-[#00FF9D] font-bold">{formData.icon.name}</span>
                                         ) : (
@@ -256,28 +269,65 @@ const AdminBotManagement = () => {
                                 </div>
                             </div>
 
-                            {/* --- RIGHT COLUMN: Configuration --- */}
+                            {/* --- RIGHT COLUMN: Configuration (FORM BUILDER) --- */}
                             <div className="flex flex-col h-full">
-                                <h3 className="text-lg font-bold text-white border-b border-white/10 pb-2 mb-6">Configuration Parameters (User Inputs)</h3>
+                                <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-4">
+                                    <h3 className="text-lg font-bold text-white">Configuration Parameters</h3>
+                                    <span className="text-xs text-gray-500">(User Inputs)</span>
+                                </div>
                                 
-                                <div className="flex-1 bg-[#131B1F] border border-white/10 rounded-xl p-4 relative overflow-hidden group">
-                                    <textarea 
-                                        value={formData.config_params}
-                                        onChange={(e) => setFormData({...formData, config_params: e.target.value})}
-                                        className="w-full h-full bg-transparent text-sm font-mono text-green-400 outline-none resize-none placeholder:text-gray-700"
-                                        placeholder={`{
-  "risk_level": "medium",
-  "take_profit": 1.5,
-  "stop_loss": 0.5,
-  "max_orders": 10
-}`}
-                                    />
-                                    <div className="absolute top-4 right-4 text-gray-600 pointer-events-none group-hover:text-gray-400">
-                                        <FileJson size={20} />
-                                    </div>
+                                <div className="flex-1 bg-[#131B1F] border border-white/10 rounded-xl p-4 flex flex-col gap-3 overflow-y-auto max-h-[400px]">
+                                    
+                                    {formData.parameters.length === 0 && (
+                                        <div className="text-center text-gray-600 text-sm py-10 italic">
+                                            No parameters added. Click below to add inputs for the user.
+                                        </div>
+                                    )}
+
+                                    {formData.parameters.map((param, index) => (
+                                        <div key={index} className="flex gap-2 items-center bg-[#080D0F] border border-white/10 p-2 rounded-lg group hover:border-[#00FF9D]/30 transition-colors">
+                                            {/* Input Name */}
+                                            <input 
+                                                type="text" 
+                                                value={param.name}
+                                                onChange={(e) => updateParameter(index, 'name', e.target.value)}
+                                                placeholder="Parameter Name (e.g. Risk Level)"
+                                                className="flex-1 bg-transparent text-sm text-white placeholder:text-gray-600 outline-none px-2"
+                                            />
+                                            
+                                            {/* Input Type Selector */}
+                                            <select 
+                                                value={param.type}
+                                                onChange={(e) => updateParameter(index, 'type', e.target.value)}
+                                                className="bg-[#131B1F] text-xs text-[#00FF9D] border border-white/10 rounded px-2 py-1 outline-none cursor-pointer"
+                                            >
+                                                <option value="Number">Number</option>
+                                                <option value="Integer">Integer</option>
+                                                <option value="String">String</option>
+                                                <option value="Boolean">Boolean</option>
+                                                <option value="Select">Dropdown</option>
+                                            </select>
+
+                                            {/* Remove Button */}
+                                            <button 
+                                                type="button"
+                                                onClick={() => removeParameter(index)}
+                                                className="text-gray-600 hover:text-red-500 p-2"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+
+                                    <button 
+                                        type="button"
+                                        onClick={addParameter}
+                                        className="mt-2 w-full border border-[#00FF9D]/30 text-[#00FF9D] text-sm font-bold py-3 rounded-xl hover:bg-[#00FF9D]/10 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Plus size={16} /> Add Parameter
+                                    </button>
                                 </div>
 
-                                {/* Action Buttons */}
                                 <div className="flex justify-end gap-4 mt-8">
                                     <button 
                                         type="button"
