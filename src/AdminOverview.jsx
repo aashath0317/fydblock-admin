@@ -21,7 +21,7 @@ const StatCard = ({ title, value, subValue, icon }) => (
 const AdminOverview = () => {
     // Mock data if backend isn't ready
     const [stats, setStats] = useState({
-        totalUsers: 125005,
+        totalUsers: 0,
         revenue: 12500500,
         activeSessions: 1250,
         systemActivity: [
