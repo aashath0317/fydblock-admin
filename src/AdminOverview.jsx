@@ -22,8 +22,8 @@ const AdminOverview = () => {
     // Mock data if backend isn't ready
     const [stats, setStats] = useState({
         totalUsers: 0,
-        revenue: 12500500,
-        activeSessions: 1250,
+        revenue: 0,
+        activeSessions: 0,
         systemActivity: [
             { time: '10am', login: 40, api: 24 },
             { time: '11am', login: 30, api: 18 },
