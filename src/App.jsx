@@ -1,24 +1,30 @@
+// src/App.jsx
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AdminOverview from './AdminOverview';
 import UserManagement from './UserManagement';
 import AdminBotManagement from './AdminBotManagement';
+import AdminLogin from './AdminLogin';
 
-// Simple placeholder for login if you haven't built a separate admin login yet
-const AdminLogin = () => (
-  <div className="h-screen flex items-center justify-center text-gray-500">
-    Please login via the main app or implement standalone admin auth here.
-  </div>
-);
+// Higher-order component to protect admin routes
+const PrivateRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  return token ? children : <Navigate to="/login" replace />;
+};
 
 const App = () => {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/dashboard" element={<AdminOverview />} />
-      <Route path="/users" element={<UserManagement />} />
-      <Route path="/bots" element={<AdminBotManagement />} />
+      {/* Public Route */}
       <Route path="/login" element={<AdminLogin />} />
+
+      {/* Protected Routes */}
+      <Route path="/dashboard" element={<PrivateRoute><AdminOverview /></PrivateRoute>} />
+      <Route path="/users" element={<PrivateRoute><UserManagement /></PrivateRoute>} />
+      <Route path="/bots" element={<PrivateRoute><AdminBotManagement /></PrivateRoute>} />
+
+      {/* Redirect root to dashboard (which will redirect to login if no token) */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 };
