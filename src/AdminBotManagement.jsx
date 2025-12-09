@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-    Bot, Plus, Activity, AlertTriangle, 
-    Settings, FileText, User 
+    Plus, User 
 } from 'lucide-react';
+import AdminNav from './AdminNav'; // ✅ Added Import
 import API_BASE_URL from './config';
 
 const AdminBotManagement = () => {
@@ -21,7 +21,7 @@ const AdminBotManagement = () => {
                     const data = await response.json();
                     setBots(data);
                 } else {
-                    // Fallback Dummy Data matching your image scenarios
+                    // Fallback Dummy Data
                     setBots([
                         { id: 1, name: 'Spot DCA Bot', status: 'Active', runStatus: 'Running', type: 'DCA' },
                         { id: 2, name: 'Spot Grid', status: 'Active', runStatus: 'Running', type: 'Grid' },
@@ -41,60 +41,65 @@ const AdminBotManagement = () => {
     // 3. CALCULATE STATS
     const totalBots = bots.length;
     const activeBots = bots.filter(b => b.status === 'Active').length;
-    // Mocking "Crashed" as we don't have that status in DB yet, setting to 0 or derived
     const crashedBots = bots.filter(b => b.status === 'Crashed').length; 
 
     return (
-        <div className="p-8 bg-[#020506] min-h-screen text-white font-sans ml-64">
-            
-            {/* --- HEADER SECTION --- */}
-            <div className="flex items-center justify-between mb-8">
-                <h1 className="text-3xl font-bold text-[#00FF9D]">Bot Management</h1>
-                <button className="bg-[#00FF9D] hover:bg-[#00cc7d] text-black font-bold px-6 py-2.5 rounded-lg transition-all flex items-center gap-2">
-                    <Plus size={18} />
-                    Add New Bot
-                </button>
-            </div>
+        <div className="min-h-screen bg-[#020506] flex text-white font-sans">
+            {/* ✅ SIDEBAR NAVIGATION */}
+            <AdminNav />
 
-            {/* --- STATS CARDS --- */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                <StatCard 
-                    label="Total Bots" 
-                    count={totalBots} 
-                    icon={<User size={24} />} 
-                />
-                <StatCard 
-                    label="Active Bots" 
-                    count={activeBots} 
-                    icon={<User size={24} />} 
-                />
-                <StatCard 
-                    label="Crashed" 
-                    count={crashedBots} 
-                    icon={<User size={24} />} 
-                />
-            </div>
+            {/* MAIN CONTENT AREA */}
+            <main className="flex-1 ml-64 p-8">
+                
+                {/* --- HEADER SECTION --- */}
+                <div className="flex items-center justify-between mb-8">
+                    <h1 className="text-3xl font-bold text-[#00FF9D]">Bot Management</h1>
+                    <button className="bg-[#00FF9D] hover:bg-[#00cc7d] text-black font-bold px-6 py-2.5 rounded-lg transition-all flex items-center gap-2">
+                        <Plus size={18} />
+                        Add New Bot
+                    </button>
+                </div>
 
-            {/* --- BOT GRID --- */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {isLoading ? (
-                    <p className="text-gray-500">Loading bots...</p>
-                ) : (
-                    <>
-                        {bots.map((bot) => (
-                            <BotCard key={bot.id} bot={bot} />
-                        ))}
-                        
-                        {/* "Add New" Card at the end */}
-                        <div className="bg-[#080D0F] border border-white/10 rounded-2xl h-[200px] flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition-all group border-dashed hover:border-[#00FF9D]/50">
-                            <div className="w-12 h-12 bg-[#00FF9D]/10 rounded-lg flex items-center justify-center text-[#00FF9D] mb-3 group-hover:scale-110 transition-transform">
-                                <Plus size={24} strokeWidth={3} />
+                {/* --- STATS CARDS --- */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                    <StatCard 
+                        label="Total Bots" 
+                        count={totalBots} 
+                        icon={<User size={24} />} 
+                    />
+                    <StatCard 
+                        label="Active Bots" 
+                        count={activeBots} 
+                        icon={<User size={24} />} 
+                    />
+                    <StatCard 
+                        label="Crashed" 
+                        count={crashedBots} 
+                        icon={<User size={24} />} 
+                    />
+                </div>
+
+                {/* --- BOT GRID --- */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    {isLoading ? (
+                        <p className="text-gray-500">Loading bots...</p>
+                    ) : (
+                        <>
+                            {bots.map((bot) => (
+                                <BotCard key={bot.id} bot={bot} />
+                            ))}
+                            
+                            {/* "Add New" Card at the end */}
+                            <div className="bg-[#080D0F] border border-white/10 rounded-2xl h-[200px] flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition-all group border-dashed hover:border-[#00FF9D]/50">
+                                <div className="w-12 h-12 bg-[#00FF9D]/10 rounded-lg flex items-center justify-center text-[#00FF9D] mb-3 group-hover:scale-110 transition-transform">
+                                    <Plus size={24} strokeWidth={3} />
+                                </div>
+                                <span className="text-gray-300 font-medium">Add New</span>
                             </div>
-                            <span className="text-gray-300 font-medium">Add New</span>
-                        </div>
-                    </>
-                )}
-            </div>
+                        </>
+                    )}
+                </div>
+            </main>
         </div>
     );
 };
