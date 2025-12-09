@@ -12,13 +12,13 @@ const AdminBotManagement = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Form State (Expanded for new design)
+    // Form State
     const [formData, setFormData] = useState({
         bot_name: '',
         description: '',
-        bot_type: 'DCA', // Maps to "Category"
-        status: true, // Active/Inactive toggle
-        config_params: '', // JSON string for params
+        bot_type: 'DCA',
+        status: true,
+        config_params: '',
         icon: null
     });
 
@@ -55,14 +55,11 @@ const AdminBotManagement = () => {
         setIsSubmitting(true);
         const token = localStorage.getItem('token');
 
-        // Prepare payload (Mapping new UI fields to backend expectations)
         const payload = {
             bot_name: formData.bot_name,
             bot_type: formData.bot_type,
-            quote_currency: 'USDT', // Defaulting for now
+            quote_currency: 'USDT',
             status: formData.status ? 'active' : 'stopped',
-            // Note: description, config, and icon need Backend updates to be saved.
-            // We send them now, but the backend might ignore them until updated.
             description: formData.description,
             config: formData.config_params
         };
@@ -80,7 +77,6 @@ const AdminBotManagement = () => {
             if (response.ok) {
                 await fetchBots(); 
                 setIsModalOpen(false); 
-                // Reset Form
                 setFormData({ 
                     bot_name: '', description: '', bot_type: 'DCA', 
                     status: true, config_params: '', icon: null 
@@ -95,14 +91,14 @@ const AdminBotManagement = () => {
         }
     };
 
-    // Helper: Handle File Drop (Visual only for now)
+    // Helper: File Drop
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
             setFormData({ ...formData, icon: e.target.files[0] });
         }
     };
 
-    // Stats Calculation
+    // Stats
     const totalBots = bots.length;
     const activeBots = bots.filter(b => b.status === 'active' || b.status === 'ready').length;
     const stoppedBots = bots.filter(b => b.status === 'stopped' || b.status === 'paused').length;
@@ -112,7 +108,6 @@ const AdminBotManagement = () => {
             <AdminNav />
 
             <main className="flex-1 ml-64 p-8">
-                
                 {/* HEADER */}
                 <div className="flex items-center justify-between mb-8">
                     <h1 className="text-3xl font-bold text-[#00FF9D]">Bot Management</h1>
@@ -150,7 +145,6 @@ const AdminBotManagement = () => {
                                 <BotCard key={bot.bot_id || bot.id} bot={bot} />
                             ))}
                             
-                            {/* "Add New" Placeholder Card */}
                             <div 
                                 onClick={() => setIsModalOpen(true)}
                                 className="bg-[#080D0F] border border-white/10 rounded-2xl h-[200px] flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition-all group border-dashed hover:border-[#00FF9D]/50"
@@ -165,7 +159,7 @@ const AdminBotManagement = () => {
                 </div>
             </main>
 
-            {/* --- NEW CREATE BOT MODAL (Wide, 2 Columns) --- */}
+            {/* --- CREATE BOT MODAL --- */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-[#020506] border border-white/10 w-full max-w-5xl rounded-3xl p-8 shadow-2xl relative overflow-hidden">
@@ -209,31 +203,29 @@ const AdminBotManagement = () => {
                                     />
                                 </div>
 
-                                {/* Category & Status Row */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 mb-2">Category</label>
-                                        <select 
-                                            value={formData.bot_type}
-                                            onChange={(e) => setFormData({...formData, bot_type: e.target.value})}
-                                            className="w-full bg-[#131B1F] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00FF9D] outline-none appearance-none"
-                                        >
-                                            <option value="DCA">Spot DCA</option>
-                                            <option value="Grid">Spot Grid</option>
-                                            <option value="Signal">Signal Bot</option>
-                                            <option value="Arbitrage">Arbitrage</option>
-                                        </select>
-                                    </div>
+                                {/* Category */}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Category</label>
+                                    <select 
+                                        value={formData.bot_type}
+                                        onChange={(e) => setFormData({...formData, bot_type: e.target.value})}
+                                        className="w-full bg-[#131B1F] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00FF9D] outline-none appearance-none"
+                                    >
+                                        <option value="DCA">Spot DCA</option>
+                                        <option value="Grid">Spot Grid</option>
+                                        <option value="Signal">Signal Bot</option>
+                                        <option value="Arbitrage">Arbitrage</option>
+                                    </select>
+                                </div>
 
-                                    {/* Custom Toggle Switch */}
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 mb-2">Status (Active)</label>
-                                        <div 
-                                            onClick={() => setFormData({...formData, status: !formData.status})}
-                                            className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-colors duration-300 ${formData.status ? 'bg-[#00FF9D]' : 'bg-gray-700'}`}
-                                        >
-                                            <div className={`w-6 h-6 bg-black rounded-full shadow-md transform transition-transform duration-300 ${formData.status ? 'translate-x-6' : 'translate-x-0'}`} />
-                                        </div>
+                                {/* Status Toggle (Updated Placement) */}
+                                <div className="flex items-center justify-between py-2">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Status (Active / Inactive)</label>
+                                    <div 
+                                        onClick={() => setFormData({...formData, status: !formData.status})}
+                                        className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-colors duration-300 ${formData.status ? 'bg-[#00FF9D]' : 'bg-gray-700'}`}
+                                    >
+                                        <div className={`w-6 h-6 bg-black rounded-full shadow-md transform transition-transform duration-300 ${formData.status ? 'translate-x-6' : 'translate-x-0'}`} />
                                     </div>
                                 </div>
 
@@ -261,7 +253,7 @@ const AdminBotManagement = () => {
 
                             {/* --- RIGHT COLUMN: Configuration --- */}
                             <div className="flex flex-col h-full">
-                                <h3 className="text-lg font-bold text-white border-b border-white/10 pb-2 mb-6">Configuration Parameters</h3>
+                                <h3 className="text-lg font-bold text-white border-b border-white/10 pb-2 mb-6">Configuration Parameters (User Inputs)</h3>
                                 
                                 <div className="flex-1 bg-[#131B1F] border border-white/10 rounded-xl p-4 relative overflow-hidden group">
                                     <textarea 
@@ -307,7 +299,7 @@ const AdminBotManagement = () => {
     );
 };
 
-// --- SUB-COMPONENTS (Unchanged) ---
+// --- SUB-COMPONENTS ---
 const StatCard = ({ label, count, icon }) => (
     <div className="bg-[#080D0F] border border-white/10 rounded-2xl p-6 flex items-center gap-4 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-20 h-20 bg-[#00FF9D]/5 rounded-full blur-2xl translate-x-1/2 -translate-y-1/2"></div>
