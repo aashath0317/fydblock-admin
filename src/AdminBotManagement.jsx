@@ -203,29 +203,34 @@ const AdminBotManagement = () => {
                                     />
                                 </div>
 
-                                {/* Category */}
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Category</label>
-                                    <select 
-                                        value={formData.bot_type}
-                                        onChange={(e) => setFormData({...formData, bot_type: e.target.value})}
-                                        className="w-full bg-[#131B1F] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00FF9D] outline-none appearance-none"
-                                    >
-                                        <option value="DCA">Spot DCA</option>
-                                        <option value="Grid">Spot Grid</option>
-                                        <option value="Signal">Signal Bot</option>
-                                        <option value="Arbitrage">Arbitrage</option>
-                                    </select>
-                                </div>
+                                {/* ROW 3: Category & Status (Side by Side) */}
+                                <div className="grid grid-cols-[2fr_1fr] gap-4">
+                                    {/* Category Dropdown */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-2">Category</label>
+                                        <select 
+                                            value={formData.bot_type}
+                                            onChange={(e) => setFormData({...formData, bot_type: e.target.value})}
+                                            className="w-full bg-[#131B1F] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00FF9D] outline-none appearance-none"
+                                        >
+                                            <option value="DCA">Spot DCA</option>
+                                            <option value="Grid">Spot Grid</option>
+                                            <option value="Signal">Signal Bot</option>
+                                            <option value="Arbitrage">Arbitrage</option>
+                                        </select>
+                                    </div>
 
-                                {/* Status Toggle (Updated Placement) */}
-                                <div className="flex items-center justify-between py-2">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">Status (Active / Inactive)</label>
-                                    <div 
-                                        onClick={() => setFormData({...formData, status: !formData.status})}
-                                        className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-colors duration-300 ${formData.status ? 'bg-[#00FF9D]' : 'bg-gray-700'}`}
-                                    >
-                                        <div className={`w-6 h-6 bg-black rounded-full shadow-md transform transition-transform duration-300 ${formData.status ? 'translate-x-6' : 'translate-x-0'}`} />
+                                    {/* Status Toggle */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-2">Status (Active)</label>
+                                        <div className="flex items-center h-[46px]"> {/* Height matches input */}
+                                            <div 
+                                                onClick={() => setFormData({...formData, status: !formData.status})}
+                                                className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-colors duration-300 ${formData.status ? 'bg-[#00FF9D]' : 'bg-gray-700'}`}
+                                            >
+                                                <div className={`w-6 h-6 bg-black rounded-full shadow-md transform transition-transform duration-300 ${formData.status ? 'translate-x-6' : 'translate-x-0'}`} />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
