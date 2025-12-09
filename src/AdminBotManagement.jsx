@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-    Plus, User, X, Loader2, CheckCircle 
+    Plus, User, X, Loader2, UploadCloud, FileJson 
 } from 'lucide-react';
 import AdminNav from './AdminNav'; 
 import API_BASE_URL from './config';
@@ -12,13 +12,14 @@ const AdminBotManagement = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Form State
+    // Form State (Expanded for new design)
     const [formData, setFormData] = useState({
         bot_name: '',
-        bot_type: 'DCA',
-        quote_currency: 'USDT',
-        plan: 'pro', // Default needed for backend logic
-        billing_cycle: 'monthly'
+        description: '',
+        bot_type: 'DCA', // Maps to "Category"
+        status: true, // Active/Inactive toggle
+        config_params: '', // JSON string for params
+        icon: null
     });
 
     // 2. FETCH DATA
@@ -34,7 +35,6 @@ const AdminBotManagement = () => {
                 const data = await response.json();
                 setBots(data);
             } else {
-                // If error, set empty (NO DUMMY DATA)
                 setBots([]); 
             }
         } catch (error) {
@@ -55,21 +55,36 @@ const AdminBotManagement = () => {
         setIsSubmitting(true);
         const token = localStorage.getItem('token');
 
+        // Prepare payload (Mapping new UI fields to backend expectations)
+        const payload = {
+            bot_name: formData.bot_name,
+            bot_type: formData.bot_type,
+            quote_currency: 'USDT', // Defaulting for now
+            status: formData.status ? 'active' : 'stopped',
+            // Note: description, config, and icon need Backend updates to be saved.
+            // We send them now, but the backend might ignore them until updated.
+            description: formData.description,
+            config: formData.config_params
+        };
+
         try {
-            // Using /user/bot because Admin is also a User who owns these system bots
             const response = await fetch(`${API_BASE_URL}/user/bot`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
             if (response.ok) {
-                await fetchBots(); // Refresh list
-                setIsModalOpen(false); // Close modal
-                setFormData({ bot_name: '', bot_type: 'DCA', quote_currency: 'USDT', plan: 'pro', billing_cycle: 'monthly' }); // Reset form
+                await fetchBots(); 
+                setIsModalOpen(false); 
+                // Reset Form
+                setFormData({ 
+                    bot_name: '', description: '', bot_type: 'DCA', 
+                    status: true, config_params: '', icon: null 
+                }); 
             } else {
                 alert("Failed to create bot. Please check your inputs.");
             }
@@ -77,6 +92,13 @@ const AdminBotManagement = () => {
             console.error("Creation error", error);
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    // Helper: Handle File Drop (Visual only for now)
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            setFormData({ ...formData, icon: e.target.files[0] });
         }
     };
 
@@ -120,7 +142,7 @@ const AdminBotManagement = () => {
                         <>
                             {bots.length === 0 && (
                                 <div className="col-span-2 text-center py-10 text-gray-500 bg-[#080D0F] rounded-2xl border border-white/5 border-dashed">
-                                    No bots found in database. Click "Add New" to create one.
+                                    No bots found in database. Click "Add New Bot" to create one.
                                 </div>
                             )}
 
@@ -143,68 +165,140 @@ const AdminBotManagement = () => {
                 </div>
             </main>
 
-            {/* --- CREATE BOT MODAL --- */}
+            {/* --- NEW CREATE BOT MODAL (Wide, 2 Columns) --- */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-[#080D0F] border border-white/10 w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
-                        <button 
-                            onClick={() => setIsModalOpen(false)}
-                            className="absolute top-4 right-4 text-gray-500 hover:text-white"
-                        >
-                            <X size={24} />
-                        </button>
-
-                        <h2 className="text-xl font-bold text-white mb-6">Create New Bot</h2>
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#020506] border border-white/10 w-full max-w-5xl rounded-3xl p-8 shadow-2xl relative overflow-hidden">
                         
-                        <form onSubmit={handleCreateBot} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Bot Name</label>
-                                <input 
-                                    type="text" 
-                                    required
-                                    value={formData.bot_name}
-                                    onChange={(e) => setFormData({...formData, bot_name: e.target.value})}
-                                    className="w-full bg-[#131B1F] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00FF9D] outline-none"
-                                    placeholder="e.g. Alpha Scalper"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Strategy Type</label>
-                                    <select 
-                                        value={formData.bot_type}
-                                        onChange={(e) => setFormData({...formData, bot_type: e.target.value})}
-                                        className="w-full bg-[#131B1F] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00FF9D] outline-none appearance-none"
-                                    >
-                                        <option value="DCA">Spot DCA</option>
-                                        <option value="Grid">Spot Grid</option>
-                                        <option value="Signal">Signal Bot</option>
-                                        <option value="Arbitrage">Arbitrage</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Currency</label>
-                                    <select 
-                                        value={formData.quote_currency}
-                                        onChange={(e) => setFormData({...formData, quote_currency: e.target.value})}
-                                        className="w-full bg-[#131B1F] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00FF9D] outline-none appearance-none"
-                                    >
-                                        <option value="USDT">USDT</option>
-                                        <option value="USDC">USDC</option>
-                                        <option value="BTC">BTC</option>
-                                        <option value="ETH">ETH</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <button 
-                                type="submit" 
-                                disabled={isSubmitting}
-                                className="w-full bg-[#00FF9D] hover:bg-[#00cc7d] text-black font-bold py-3.5 rounded-xl transition-all mt-4 flex items-center justify-center gap-2"
-                            >
-                                {isSubmitting ? <Loader2 className="animate-spin" /> : 'Create Bot'}
+                        {/* Modal Header */}
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-2xl font-bold text-white">Create New System Bot</h2>
+                            <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-white transition-colors">
+                                <X size={28} />
                             </button>
+                        </div>
+                        
+                        <form onSubmit={handleCreateBot} className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                            
+                            {/* --- LEFT COLUMN: General Information --- */}
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-bold text-white border-b border-white/10 pb-2">General Information</h3>
+
+                                {/* Bot Name */}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Bot Name</label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        value={formData.bot_name}
+                                        onChange={(e) => setFormData({...formData, bot_name: e.target.value})}
+                                        className="w-full bg-[#131B1F] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00FF9D] outline-none"
+                                        placeholder="e.g. Alpha Scalper"
+                                    />
+                                </div>
+
+                                {/* Description */}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Description</label>
+                                    <textarea 
+                                        rows="3"
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                        className="w-full bg-[#131B1F] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00FF9D] outline-none resize-none"
+                                        placeholder="Briefly describe the bot strategy..."
+                                    />
+                                </div>
+
+                                {/* Category & Status Row */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-2">Category</label>
+                                        <select 
+                                            value={formData.bot_type}
+                                            onChange={(e) => setFormData({...formData, bot_type: e.target.value})}
+                                            className="w-full bg-[#131B1F] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00FF9D] outline-none appearance-none"
+                                        >
+                                            <option value="DCA">Spot DCA</option>
+                                            <option value="Grid">Spot Grid</option>
+                                            <option value="Signal">Signal Bot</option>
+                                            <option value="Arbitrage">Arbitrage</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Custom Toggle Switch */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-2">Status (Active)</label>
+                                        <div 
+                                            onClick={() => setFormData({...formData, status: !formData.status})}
+                                            className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-colors duration-300 ${formData.status ? 'bg-[#00FF9D]' : 'bg-gray-700'}`}
+                                        >
+                                            <div className={`w-6 h-6 bg-black rounded-full shadow-md transform transition-transform duration-300 ${formData.status ? 'translate-x-6' : 'translate-x-0'}`} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* File Upload */}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Set Bot Icon</label>
+                                    <div className="border-2 border-dashed border-white/10 rounded-xl bg-[#131B1F] h-32 flex flex-col items-center justify-center text-gray-500 hover:border-[#00FF9D]/50 hover:bg-[#131B1F]/50 transition-all cursor-pointer relative">
+                                        <input 
+                                            type="file" 
+                                            className="absolute inset-0 opacity-0 cursor-pointer" 
+                                            onChange={handleFileChange}
+                                        />
+                                        {formData.icon ? (
+                                            <span className="text-[#00FF9D] font-bold">{formData.icon.name}</span>
+                                        ) : (
+                                            <>
+                                                <UploadCloud size={24} className="mb-2" />
+                                                <span className="text-xs">Drop the SVG file here</span>
+                                                <span className="text-[10px] opacity-50 mt-1">or click to upload</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* --- RIGHT COLUMN: Configuration --- */}
+                            <div className="flex flex-col h-full">
+                                <h3 className="text-lg font-bold text-white border-b border-white/10 pb-2 mb-6">Configuration Parameters</h3>
+                                
+                                <div className="flex-1 bg-[#131B1F] border border-white/10 rounded-xl p-4 relative overflow-hidden group">
+                                    <textarea 
+                                        value={formData.config_params}
+                                        onChange={(e) => setFormData({...formData, config_params: e.target.value})}
+                                        className="w-full h-full bg-transparent text-sm font-mono text-green-400 outline-none resize-none placeholder:text-gray-700"
+                                        placeholder={`{
+  "risk_level": "medium",
+  "take_profit": 1.5,
+  "stop_loss": 0.5,
+  "max_orders": 10
+}`}
+                                    />
+                                    <div className="absolute top-4 right-4 text-gray-600 pointer-events-none group-hover:text-gray-400">
+                                        <FileJson size={20} />
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex justify-end gap-4 mt-8">
+                                    <button 
+                                        type="button"
+                                        onClick={() => setIsModalOpen(false)}
+                                        className="px-6 py-3 rounded-xl bg-[#131B1F] border border-white/10 text-gray-400 font-bold hover:text-white hover:border-white/30 transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        disabled={isSubmitting}
+                                        className="px-8 py-3 rounded-xl bg-[#00FF9D] text-black font-bold hover:bg-[#00cc7d] shadow-[0_0_20px_rgba(0,255,157,0.2)] transition-all flex items-center gap-2"
+                                    >
+                                        {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : 'Create Bot'}
+                                    </button>
+                                </div>
+                            </div>
+
                         </form>
                     </div>
                 </div>
@@ -213,8 +307,7 @@ const AdminBotManagement = () => {
     );
 };
 
-// --- SUB-COMPONENTS ---
-
+// --- SUB-COMPONENTS (Unchanged) ---
 const StatCard = ({ label, count, icon }) => (
     <div className="bg-[#080D0F] border border-white/10 rounded-2xl p-6 flex items-center gap-4 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-20 h-20 bg-[#00FF9D]/5 rounded-full blur-2xl translate-x-1/2 -translate-y-1/2"></div>
@@ -229,9 +322,7 @@ const StatCard = ({ label, count, icon }) => (
 );
 
 const BotCard = ({ bot }) => {
-    // Determine status color based on API status
     const isActive = bot.status === 'active' || bot.status === 'ready' || bot.status === 'running';
-    
     return (
         <div className="bg-[#080D0F] border border-white/10 rounded-2xl p-6 relative">
             <div className="flex justify-between items-start mb-4 pb-4 border-b border-white/5">
