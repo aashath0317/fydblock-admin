@@ -104,7 +104,27 @@ const AdminBotManagement = () => {
         const newParams = formData.parameters.filter((_, i) => i !== index);
         setFormData({ ...formData, parameters: newParams });
     };
-
+    const handleDeleteBot = async (botId) => {
+            if (!window.confirm("Are you sure you want to delete this bot?")) return;
+    
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/user/bot/${botId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+    
+                if (response.ok) {
+                    // Remove from UI immediately
+                    setBots(bots.filter(bot => (bot.bot_id || bot.id) !== botId));
+                } else {
+                    alert("Failed to delete bot");
+                }
+            } catch (error) {
+                console.error("Delete error", error);
+            }
+        };
+        
     const handleCreateBot = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -198,7 +218,11 @@ const AdminBotManagement = () => {
                             )}
 
                             {bots.map((bot) => (
-                                <BotCard key={bot.bot_id || bot.id} bot={bot} />
+                                <BotCard 
+                                    key={bot.bot_id || bot.id} 
+                                    bot={bot} 
+                                    onDelete={handleDeleteBot}
+                                />
                             ))}
                             
                             <div 
@@ -399,10 +423,12 @@ const StatCard = ({ label, count, icon }) => (
     </div>
 );
 
-const BotCard = ({ bot }) => {
+const BotCard = ({ bot, onDelete }) => { // <--- Receive onDelete prop
     const isActive = bot.status === 'active' || bot.status === 'ready' || bot.status === 'running';
+    
     return (
-        <div className="bg-[#080D0F] border border-white/10 rounded-2xl p-6 relative">
+        <div className="bg-[#080D0F] border border-white/10 rounded-2xl p-6 relative group">
+            {/* Header */}
             <div className="flex justify-between items-start mb-4 pb-4 border-b border-white/5">
                 <h3 className="text-xl font-medium text-white">{bot.bot_name || bot.name}</h3>
                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -411,17 +437,29 @@ const BotCard = ({ bot }) => {
                     {bot.status || 'Unknown'}
                 </span>
             </div>
+
+            {/* Content */}
             <div className="flex items-end justify-between">
                 <div>
                     <p className="text-gray-500 text-sm mb-1">Type</p>
                     <p className="text-xl font-medium text-white capitalize">{bot.bot_type || bot.type || 'Standard'}</p>
                 </div>
+                
+                {/* Actions */}
                 <div className="flex gap-3">
                     <button className="bg-[#00FF9D] hover:bg-[#00cc7d] text-black font-bold px-6 py-2 rounded-lg text-sm transition-colors">
                         Configure
                     </button>
                     <button className="bg-transparent border border-white/20 hover:border-white/40 text-white px-6 py-2 rounded-lg text-sm transition-colors">
                         View Logs
+                    </button>
+                    {/* Delete Button */}
+                    <button 
+                        onClick={() => onDelete(bot.bot_id || bot.id)}
+                        className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-500 p-2 rounded-lg transition-colors"
+                        title="Delete Bot"
+                    >
+                        <Trash2 size={20} />
                     </button>
                 </div>
             </div>
