@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-    Plus, User, X, Loader2, UploadCloud, Trash2, Settings 
+    Plus, User, X, Loader2, UploadCloud, Trash2 
 } from 'lucide-react';
 import AdminNav from './AdminNav'; 
 import API_BASE_URL from './config';
@@ -19,9 +19,33 @@ const AdminBotManagement = () => {
         bot_type: 'DCA',
         status: true,
         icon: null,
-        // Instead of a string, we use an array for the builder
         parameters: [] 
     });
+
+    // --- DEFAULT PARAMETER TEMPLATES ---
+    const PARAMETER_TEMPLATES = {
+        'DCA': [
+            { name: 'Base Order Size', type: 'Number' },
+            { name: 'Safety Order Size', type: 'Number' },
+            { name: 'Max Safety Orders', type: 'Integer' },
+            { name: 'Take Profit (%)', type: 'Number' }
+        ],
+        'Grid': [
+            { name: 'Upper Price', type: 'Number' },
+            { name: 'Lower Price', type: 'Number' },
+            { name: 'Grid Quantity', type: 'Integer' },
+            { name: 'Investment Amount', type: 'Number' }
+        ],
+        'Signal': [
+            { name: 'Signal Provider URL', type: 'String' },
+            { name: 'Risk Factor', type: 'Select' }
+        ],
+        'Arbitrage': [
+            { name: 'Min Profit Spread (%)', type: 'Number' },
+            { name: 'Exchange A', type: 'Select' },
+            { name: 'Exchange B', type: 'Select' }
+        ]
+    };
 
     // 2. FETCH DATA
     const fetchBots = async () => {
@@ -50,9 +74,19 @@ const AdminBotManagement = () => {
         fetchBots();
     }, []);
 
+    // --- AUTO-FILL PARAMETERS ON TYPE CHANGE ---
+    useEffect(() => {
+        // Only auto-fill if the modal is open to prevent overwriting during other edits
+        if (isModalOpen) {
+            const defaults = PARAMETER_TEMPLATES[formData.bot_type] || [];
+            setFormData(prev => ({
+                ...prev,
+                parameters: defaults
+            }));
+        }
+    }, [formData.bot_type, isModalOpen]);
+
     // 3. HANDLERS
-    
-    // Add a new empty parameter row
     const addParameter = () => {
         setFormData(prev => ({
             ...prev,
@@ -60,14 +94,12 @@ const AdminBotManagement = () => {
         }));
     };
 
-    // Update a specific parameter field
     const updateParameter = (index, field, value) => {
         const newParams = [...formData.parameters];
         newParams[index][field] = value;
         setFormData({ ...formData, parameters: newParams });
     };
 
-    // Remove a parameter
     const removeParameter = (index) => {
         const newParams = formData.parameters.filter((_, i) => i !== index);
         setFormData({ ...formData, parameters: newParams });
@@ -77,8 +109,6 @@ const AdminBotManagement = () => {
         e.preventDefault();
         setIsSubmitting(true);
         const token = localStorage.getItem('token');
-
-        // Convert the builder array to a JSON string for the backend
         const configJson = JSON.stringify(formData.parameters);
 
         const payload = {
@@ -87,7 +117,7 @@ const AdminBotManagement = () => {
             quote_currency: 'USDT',
             status: formData.status ? 'active' : 'stopped',
             description: formData.description,
-            config: configJson // Send as stringified JSON
+            config: configJson
         };
 
         try {
@@ -103,6 +133,7 @@ const AdminBotManagement = () => {
             if (response.ok) {
                 await fetchBots(); 
                 setIsModalOpen(false); 
+                // Reset Form
                 setFormData({ 
                     bot_name: '', description: '', bot_type: 'DCA', 
                     status: true, icon: null, parameters: [] 
@@ -199,7 +230,7 @@ const AdminBotManagement = () => {
                         
                         <form onSubmit={handleCreateBot} className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                             
-                            {/* --- LEFT COLUMN: General Information --- */}
+                            {/* --- LEFT COLUMN --- */}
                             <div className="space-y-6">
                                 <h3 className="text-lg font-bold text-white border-b border-white/10 pb-2">General Information</h3>
 
@@ -269,7 +300,7 @@ const AdminBotManagement = () => {
                                 </div>
                             </div>
 
-                            {/* --- RIGHT COLUMN: Configuration (FORM BUILDER) --- */}
+                            {/* --- RIGHT COLUMN (FORM BUILDER) --- */}
                             <div className="flex flex-col h-full">
                                 <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-4">
                                     <h3 className="text-lg font-bold text-white">Configuration Parameters</h3>
@@ -280,7 +311,7 @@ const AdminBotManagement = () => {
                                     
                                     {formData.parameters.length === 0 && (
                                         <div className="text-center text-gray-600 text-sm py-10 italic">
-                                            No parameters added. Click below to add inputs for the user.
+                                            No parameters. Select a category or click "Add" to start.
                                         </div>
                                     )}
 
@@ -291,11 +322,11 @@ const AdminBotManagement = () => {
                                                 type="text" 
                                                 value={param.name}
                                                 onChange={(e) => updateParameter(index, 'name', e.target.value)}
-                                                placeholder="Parameter Name (e.g. Risk Level)"
+                                                placeholder="Parameter Name"
                                                 className="flex-1 bg-transparent text-sm text-white placeholder:text-gray-600 outline-none px-2"
                                             />
                                             
-                                            {/* Input Type Selector */}
+                                            {/* Input Type */}
                                             <select 
                                                 value={param.type}
                                                 onChange={(e) => updateParameter(index, 'type', e.target.value)}
