@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-    Plus, User, X, Loader2, UploadCloud, Trash2 
+    Plus, User, X, Loader2, UploadCloud, Trash2, Settings 
 } from 'lucide-react';
 import AdminNav from './AdminNav'; 
 import API_BASE_URL from './config';
@@ -11,6 +11,9 @@ const AdminBotManagement = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Track if we are editing (holds the ID) or creating (null)
+    const [editingBotId, setEditingBotId] = useState(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -76,17 +79,57 @@ const AdminBotManagement = () => {
 
     // --- AUTO-FILL PARAMETERS ON TYPE CHANGE ---
     useEffect(() => {
-        // Only auto-fill if the modal is open to prevent overwriting during other edits
-        if (isModalOpen) {
+        // Only auto-fill if we are creating a NEW bot (not editing)
+        if (isModalOpen && !editingBotId) {
             const defaults = PARAMETER_TEMPLATES[formData.bot_type] || [];
             setFormData(prev => ({
                 ...prev,
                 parameters: defaults
             }));
         }
-    }, [formData.bot_type, isModalOpen]);
+    }, [formData.bot_type, isModalOpen, editingBotId]);
 
     // 3. HANDLERS
+    
+    // --- OPEN MODAL FOR EDITING ---
+    const handleConfigureClick = (bot) => {
+        // 1. Parse the existing config (handle if it's a string or object)
+        let existingParams = [];
+        try {
+            if (typeof bot.config === 'string') {
+                existingParams = JSON.parse(bot.config);
+            } else if (Array.isArray(bot.config)) {
+                existingParams = bot.config;
+            }
+        } catch (e) {
+            console.error("Error parsing config", e);
+            existingParams = [];
+        }
+
+        // 2. Populate form data
+        setFormData({
+            bot_name: bot.bot_name || bot.name,
+            description: bot.description || '',
+            bot_type: bot.bot_type || bot.type || 'DCA',
+            status: bot.status === 'active' || bot.status === 'running',
+            icon: null, // Icons usually can't be pre-filled in file inputs
+            parameters: existingParams.length > 0 ? existingParams : (PARAMETER_TEMPLATES[bot.bot_type] || [])
+        });
+
+        // 3. Set Edit Mode & Open
+        setEditingBotId(bot.bot_id || bot.id);
+        setIsModalOpen(true);
+    };
+
+    const handleOpenCreateModal = () => {
+        setEditingBotId(null); // Clear edit ID
+        setFormData({ 
+            bot_name: '', description: '', bot_type: 'DCA', 
+            status: true, icon: null, parameters: [] 
+        });
+        setIsModalOpen(true);
+    };
+
     const addParameter = () => {
         setFormData(prev => ({
             ...prev,
@@ -104,28 +147,28 @@ const AdminBotManagement = () => {
         const newParams = formData.parameters.filter((_, i) => i !== index);
         setFormData({ ...formData, parameters: newParams });
     };
+
     const handleDeleteBot = async (botId) => {
-            if (!window.confirm("Are you sure you want to delete this bot?")) return;
-    
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`${API_BASE_URL}/user/bot/${botId}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-    
-                if (response.ok) {
-                    // Remove from UI immediately
-                    setBots(bots.filter(bot => (bot.bot_id || bot.id) !== botId));
-                } else {
-                    alert("Failed to delete bot");
-                }
-            } catch (error) {
-                console.error("Delete error", error);
+        if (!window.confirm("Are you sure you want to delete this bot?")) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/user/bot/${botId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                setBots(bots.filter(bot => (bot.bot_id || bot.id) !== botId));
+            } else {
+                alert("Failed to delete bot");
             }
-        };
+        } catch (error) {
+            console.error("Delete error", error);
+        }
+    };
         
-    const handleCreateBot = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
         const token = localStorage.getItem('token');
@@ -141,28 +184,38 @@ const AdminBotManagement = () => {
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/user/bot`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
-            });
+            let response;
+            if (editingBotId) {
+                // UPDATE EXISTING BOT
+                response = await fetch(`${API_BASE_URL}/user/bot/${editingBotId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+            } else {
+                // CREATE NEW BOT
+                response = await fetch(`${API_BASE_URL}/user/bot`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+            }
 
             if (response.ok) {
                 await fetchBots(); 
                 setIsModalOpen(false); 
-                // Reset Form
-                setFormData({ 
-                    bot_name: '', description: '', bot_type: 'DCA', 
-                    status: true, icon: null, parameters: [] 
-                }); 
+                setEditingBotId(null);
             } else {
-                alert("Failed to create bot. Please check your inputs.");
+                alert("Operation failed. Please check your inputs.");
             }
         } catch (error) {
-            console.error("Creation error", error);
+            console.error("Submit error", error);
         } finally {
             setIsSubmitting(false);
         }
@@ -188,7 +241,7 @@ const AdminBotManagement = () => {
                 <div className="flex items-center justify-between mb-8">
                     <h1 className="text-3xl font-bold text-[#00FF9D]">Bot Management</h1>
                     <button 
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={handleOpenCreateModal}
                         className="bg-[#00FF9D] hover:bg-[#00cc7d] text-black font-bold px-6 py-2.5 rounded-lg transition-all flex items-center gap-2"
                     >
                         <Plus size={18} />
@@ -222,11 +275,12 @@ const AdminBotManagement = () => {
                                     key={bot.bot_id || bot.id} 
                                     bot={bot} 
                                     onDelete={handleDeleteBot}
+                                    onConfigure={handleConfigureClick} // Pass the configure handler
                                 />
                             ))}
                             
                             <div 
-                                onClick={() => setIsModalOpen(true)}
+                                onClick={handleOpenCreateModal}
                                 className="bg-[#080D0F] border border-white/10 rounded-2xl h-[200px] flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition-all group border-dashed hover:border-[#00FF9D]/50"
                             >
                                 <div className="w-12 h-12 bg-[#00FF9D]/10 rounded-lg flex items-center justify-center text-[#00FF9D] mb-3 group-hover:scale-110 transition-transform">
@@ -239,20 +293,22 @@ const AdminBotManagement = () => {
                 </div>
             </main>
 
-            {/* --- CREATE BOT MODAL --- */}
+            {/* --- CREATE/EDIT BOT MODAL --- */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-[#020506] border border-white/10 w-full max-w-5xl rounded-3xl p-8 shadow-2xl relative overflow-hidden">
                         
                         {/* Modal Header */}
                         <div className="flex justify-between items-center mb-8">
-                            <h2 className="text-2xl font-bold text-white">Create New System Bot</h2>
+                            <h2 className="text-2xl font-bold text-white">
+                                {editingBotId ? 'Configure Bot' : 'Create New System Bot'}
+                            </h2>
                             <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-white transition-colors">
                                 <X size={28} />
                             </button>
                         </div>
                         
-                        <form onSubmit={handleCreateBot} className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                             
                             {/* --- LEFT COLUMN --- */}
                             <div className="space-y-6">
@@ -295,7 +351,7 @@ const AdminBotManagement = () => {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-500 mb-2">Status (Active)</label>
+                                        <label className="block text-xs font-bold text-gray-500 mb-2">Status</label>
                                         <div className="flex items-center h-[46px]">
                                             <div 
                                                 onClick={() => setFormData({...formData, status: !formData.status})}
@@ -303,6 +359,9 @@ const AdminBotManagement = () => {
                                             >
                                                 <div className={`w-6 h-6 bg-black rounded-full shadow-md transform transition-transform duration-300 ${formData.status ? 'translate-x-6' : 'translate-x-0'}`} />
                                             </div>
+                                            <span className="ml-3 text-sm font-bold text-white">
+                                                {formData.status ? 'Active' : 'Stopped'}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -396,7 +455,7 @@ const AdminBotManagement = () => {
                                         disabled={isSubmitting}
                                         className="px-8 py-3 rounded-xl bg-[#00FF9D] text-black font-bold hover:bg-[#00cc7d] shadow-[0_0_20px_rgba(0,255,157,0.2)] transition-all flex items-center gap-2"
                                     >
-                                        {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : 'Create Bot'}
+                                        {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : (editingBotId ? 'Update Bot' : 'Create Bot')}
                                     </button>
                                 </div>
                             </div>
@@ -423,7 +482,7 @@ const StatCard = ({ label, count, icon }) => (
     </div>
 );
 
-const BotCard = ({ bot, onDelete }) => { // <--- Receive onDelete prop
+const BotCard = ({ bot, onDelete, onConfigure }) => { 
     const isActive = bot.status === 'active' || bot.status === 'ready' || bot.status === 'running';
     
     return (
@@ -447,7 +506,10 @@ const BotCard = ({ bot, onDelete }) => { // <--- Receive onDelete prop
                 
                 {/* Actions */}
                 <div className="flex gap-3">
-                    <button className="bg-[#00FF9D] hover:bg-[#00cc7d] text-black font-bold px-6 py-2 rounded-lg text-sm transition-colors">
+                    <button 
+                        onClick={() => onConfigure(bot)}
+                        className="bg-[#00FF9D] hover:bg-[#00cc7d] text-black font-bold px-6 py-2 rounded-lg text-sm transition-colors"
+                    >
                         Configure
                     </button>
                     <button className="bg-transparent border border-white/20 hover:border-white/40 text-white px-6 py-2 rounded-lg text-sm transition-colors">
