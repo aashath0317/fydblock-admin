@@ -7,7 +7,7 @@ import App from './App.jsx'
 import './index.css'
 
 // Replace this with your actual Google Client ID from your .env file or console
-import.meta.env.VITE_GOOGLE_CLIENT_ID
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
