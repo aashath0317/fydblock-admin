@@ -5,7 +5,7 @@ import { LayoutGrid, Users, FileText, Settings, Bot, LogOut } from 'lucide-react
 const AdminNav = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    
+
     const menuItems = [
         { name: 'Admin Overview', icon: LayoutGrid, path: '/dashboard' },
         { name: 'User Management', icon: Users, path: '/users' },
@@ -16,8 +16,7 @@ const AdminNav = () => {
 
     const handleLogout = () => {
         localStorage.removeItem('token');
-        // In a real multi-app setup, you might redirect to the main app's login
-        window.location.href = 'http://localhost:5173/signin'; 
+        navigate('/login', { replace: true });
     };
 
     return (
@@ -37,8 +36,8 @@ const AdminNav = () => {
                             key={item.path}
                             onClick={() => navigate(item.path)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
-                                ${isActive 
-                                    ? 'bg-[#00FF9D] text-black shadow-[0_0_15px_rgba(0,255,157,0.3)]' 
+                                ${isActive
+                                    ? 'bg-[#00FF9D] text-black shadow-[0_0_15px_rgba(0,255,157,0.3)]'
                                     : 'text-gray-400 hover:text-white hover:bg-white/5'
                                 }`}
                         >

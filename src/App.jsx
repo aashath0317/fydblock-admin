@@ -4,6 +4,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import AdminOverview from './AdminOverview';
 import UserManagement from './UserManagement';
 import AdminBotManagement from './AdminBotManagement';
+import SystemLogs from './SystemLogs';
 import AdminLogin from './AdminLogin';
 
 // Higher-order component to protect admin routes
@@ -22,6 +23,7 @@ const App = () => {
       <Route path="/dashboard" element={<PrivateRoute><AdminOverview /></PrivateRoute>} />
       <Route path="/users" element={<PrivateRoute><UserManagement /></PrivateRoute>} />
       <Route path="/bots" element={<PrivateRoute><AdminBotManagement /></PrivateRoute>} />
+      <Route path="/logs" element={<PrivateRoute><SystemLogs /></PrivateRoute>} />
 
       {/* Redirect root to dashboard (which will redirect to login if no token) */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
