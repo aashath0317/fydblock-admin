@@ -54,6 +54,7 @@ const EditUserModal = ({ user, onClose, onUpdate }) => {
                                 className="w-full bg-[#1A1F23] border border-white/10 rounded-lg p-2 text-white focus:border-[#00FF9D] focus:outline-none transition-colors"
                             >
                                 <option value="user">User</option>
+                                <option value="editor">Editor</option>
                                 <option value="admin">Admin</option>
                             </select>
                         </div>
@@ -273,6 +274,7 @@ const UserManagement = () => {
                                     <th className="p-5 font-normal">User ID</th>
                                     <th className="p-5 font-normal">Email</th>
                                     <th className="p-5 font-normal">Plan</th>
+                                    <th className="p-5 font-normal">Role</th>
                                     <th className="p-5 font-normal">Status</th>
                                     <th className="p-5 font-normal">Registered</th>
                                     <th className="p-5 font-normal">Last Login</th>
@@ -281,15 +283,16 @@ const UserManagement = () => {
                             </thead>
                             <tbody className="divide-y divide-white/5">
                                 {loading ? (
-                                    <tr><td colSpan="7" className="p-8 text-center text-gray-500">Loading users...</td></tr>
+                                    <tr><td colSpan="8" className="p-8 text-center text-gray-500">Loading users...</td></tr>
                                 ) : filteredUsers.length === 0 ? (
-                                    <tr><td colSpan="7" className="p-8 text-center text-gray-500">No users found.</td></tr>
+                                    <tr><td colSpan="8" className="p-8 text-center text-gray-500">No users found.</td></tr>
                                 ) : (
                                     filteredUsers.map((user) => (
                                         <tr key={user.id} className="hover:bg-white/[0.02] transition-colors group">
                                             <td className="p-5 text-gray-400 text-sm font-mono">{user.user_id_display}</td>
                                             <td className="p-5 text-gray-200 text-sm">{user.email}</td>
                                             <td className="p-5 text-sm">{getPlanBadge(user.plan)}</td>
+                                            <td className="p-5 text-sm uppercase font-bold text-gray-500">{user.role || 'user'}</td>
                                             <td className="p-5 text-sm">{getStatusBadge(user.status)}</td>
                                             <td className="p-5 text-gray-400 text-sm">{user.registered}</td>
                                             <td className="p-5 text-gray-400 text-sm">{user.last_login}</td>
